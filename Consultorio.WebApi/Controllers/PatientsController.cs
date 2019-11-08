@@ -8,6 +8,10 @@ using Microsoft.EntityFrameworkCore;
 using Consultorio.WebApi.Data;
 using Consultorio.WebApi.Models;
 using Consultorio.WebApi.Services;
+using static Consultorio.WebApi.Data.Constants;
+using Consultorio.WebApi.DTOs.Requests;
+using AutoMapper;
+using Consultorio.WebApi.DTOs.Responses;
 
 namespace Consultorio.WebApi.Controllers
 {
@@ -16,21 +20,61 @@ namespace Consultorio.WebApi.Controllers
     public class PatientsController : ControllerBase
     {
         private readonly IPatientService _PatientsService;
+        private readonly IMapper _mapper;
 
-        public PatientsController(IPatientService patientsService)
+        public PatientsController(IPatientService patientsService, IMapper mapper)
         {
             _PatientsService = patientsService;
+            _mapper = mapper;
         }
-        
-        // POST: api/Patients
-        [HttpPost]
-        async Task<ActionResult<Patient>> PostPatient(Patient patient)
-        {
-            await _PatientsService.AddPatientAsync(patient)
-            
-            await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetPatient", new { id = patient.DNI }, patient);
+        // POST: api/Patients/AddPatient
+        /// <summary>
+        /// Crea el paciente en base a los datos enviados de una persona.
+        /// </summary>
+        /// <remarks>
+        /// Ejemplo de request:
+        ///
+        ///     POST /Patient
+        ///     {
+        ///        "DNI": "30444555",
+        ///        "Name": "Juan",
+        ///        "LastName": "Perez",
+        ///        "BirthDate": "01/01/1990"
+        ///     }
+        ///
+        /// </remarks>
+        /// <returns>Devuevle los datos del paciente creado</returns>
+        [HttpPost]
+        public async Task<ActionResult<Patient>> PostPatient([FromBody] PatientAddDTO request)
+        {
+            var person = _mapper.Map<PatientAddDTO, Person>(request);
+
+            var successful = await _PatientsService.AddPatientAsync(person);
+            if (!successful)
+            {
+                return BadRequest("No se pudo agregar al paciente.");
+            }
+            return CreatedAtAction("GetPatient", new { id = person.DNI }, person);
+        }
+
+        // GET: api/Patients/Patient
+        /// <summary>
+        /// Devuelve datos del paciente según el DNI enviado.
+        /// </summary>
+        /// <returns>Datos del paciente.</returns>
+        [HttpGet("{dni}")]
+        public async Task<ActionResult<PatientDTO>> GetPatient(int dni)
+        {
+            var patient = await _PatientsService.GetPatientAsync(dni);
+
+            if (patient == null)
+            {
+                return NotFound();
+            }
+
+            var resources = _mapper.Map<Patient, PatientDTO>(patient);
+            return Ok(resources);
         }
 
         // GET: api/Patients
@@ -40,10 +84,15 @@ namespace Consultorio.WebApi.Controllers
             var Patients = await _PatientsService.GetPatientsAsync();
             return Patients;
         }
-        
-        // GET: api/Patients/5
-        [HttpGet("{dni}")]
-        public async Task<ActionResult<Patient>> GetPatient(int dni)
+
+        // DELETE: api/Patients/5
+        /// <summary>
+        /// Elimina un paciente según el DNI enviado.
+        /// </summary>
+        /// <param name="dni"></param>
+        /// <returns>Retorna los datos del paciente eliminado.</returns>
+        [HttpDelete("{dni}")]
+        public async Task<ActionResult<Patient>> DeletePatient(int dni)
         {
             var patient = await _PatientsService.GetPatientAsync(dni);
 
@@ -52,59 +101,34 @@ namespace Consultorio.WebApi.Controllers
                 return NotFound();
             }
 
-            return patient;
-        }
-
-        // DELETE: api/Patients/5
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<Patient>> DeletePatient(int id)
-        {
-            var patient = await _context.Patients.FindAsync(id);
-            if (patient == null)
-            {
-                return NotFound();
-            }
-
-            _context.Patients.Remove(patient);
-            await _context.SaveChangesAsync();
+            await _PatientsService.DeletePatientAsync(dni);
 
             return patient;
         }
 
         // // PUT: api/Patients/5
-        // [HttpPut("{id}")]
-        // public async Task<IActionResult> PutPatient(int id, Patient patient)
-        // {
-        //     if (id != patient.DNI)
-        //     {
-        //         return BadRequest();
-        //     }
+        /// <summary>
+        /// Modifica los datos de un paciente
+        ///     - 
+        /// </summary>
+        /// <param name="dni"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPut("{dni}")]
+        public async Task<IActionResult> PutPatient(int dni, [FromBody] PatientUpdateDTO request)
+        {
 
-        //     _context.Entry(patient).State = EntityState.Modified;
+            if (dni != request.DNI)
+            {
+                return BadRequest();
+            }
 
-        //     try
-        //     {
-        //         await _context.SaveChangesAsync();
-        //     }
-        //     catch (DbUpdateConcurrencyException)
-        //     {
-        //         if (!PatientExists(id))
-        //         {
-        //             return NotFound();
-        //         }
-        //         else
-        //         {
-        //             throw;
-        //         }
-        //     }
+            var patientUpdate = _mapper.Map<PatientUpdateDTO, Patient>(request);
+            await _PatientsService.ModifyPatientAsync(patientUpdate);
 
-        //     return NoContent();
-        // }
+            var patientDTO = _mapper.Map<Patient, PatientDTO>(patientUpdate);
 
-
-        // private bool PatientExists(int id)
-        // {
-        //     return _context.Patients.Any(e => e.DNI == id);
-        // }
+            return Ok(patientDTO);
+        }
     }
 }

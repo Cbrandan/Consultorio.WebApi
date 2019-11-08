@@ -17,24 +17,41 @@ namespace Consultorio.WebApi.Services
             _context = context;
         }
 
+        public async Task<bool> AddPatientAsync(Person person)
+        {
+            var newPatient = new Patient {
+                DNI = person.DNI,
+                Name = person.Name,
+                LastName = person.LastName,
+                BirthDate = person.BirthDate,
+                Sex = person.Sex,
+                HighDate = DateTime.Now,
+                UserId = "user.Id"
+            };
+
+            _context.Patients.Add(newPatient);
+            var saveResult = await _context.SaveChangesAsync();
+            return saveResult == 1;
+        }
+
         public async Task<Patient[]> GetPatientsAsync()
         {
             return await _context.Patients.ToArrayAsync();
         }
 
-        public Task<Patient> GetPatientAsync(int dni)
+        public async Task<Patient> GetPatientAsync(int dni)
         {
-            throw new NotImplementedException();
+            var patient = await _context.Patients
+            .Where(x => x.DNI == dni).FirstOrDefaultAsync();
+            return patient;
         }
 
-        public Task<bool> AddPatientAsync(Patient newPatient)
+        public async Task<bool> DeletePatientAsync(int dni)
         {
-            throw new NotImplementedException();
-        }
+            _context.RemoveRange(_context.Patients.Where(x => x.DNI == dni));
+            var saveResult = await _context.SaveChangesAsync();
 
-        public Task<bool> DeletePatientAsync(int dni)
-        {
-            throw new NotImplementedException();
+            return saveResult == 1;
         }
 
         public Task<bool> ModifyPatientAsync(Patient modPatient)

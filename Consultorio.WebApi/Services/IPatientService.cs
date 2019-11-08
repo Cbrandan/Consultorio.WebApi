@@ -8,7 +8,7 @@ namespace Consultorio.WebApi.Services
 {
     public interface IPatientService
     {
-        Task<bool> AddPatientAsync(Patient newPatient);
+        Task<bool> AddPatientAsync(Person newPatient);
         Task<Patient[]> GetPatientsAsync();
         Task<Patient> GetPatientAsync(int dni);
         Task<bool> DeletePatientAsync(int dni);
