@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Consultorio.WebApi.Data;
+﻿using AutoMapper;
+using Consultorio.WebApi.DTOs.Requests;
+using Consultorio.WebApi.DTOs.Responses;
 using Consultorio.WebApi.Models;
 using Consultorio.WebApi.Services;
-using static Consultorio.WebApi.Data.Constants;
-using Consultorio.WebApi.DTOs.Requests;
-using AutoMapper;
-using Consultorio.WebApi.DTOs.Responses;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Consultorio.WebApi.Controllers
 {
@@ -46,7 +41,8 @@ namespace Consultorio.WebApi.Controllers
         /// </remarks>
         /// <returns>Devuevle los datos del paciente creado</returns>
         [HttpPost]
-        public async Task<ActionResult<Patient>> PostPatient([FromBody] PatientAddDTO request)
+        [ProducesResponseType(typeof(PatientDTO), StatusCodes.Status201Created)]
+        public async Task<ActionResult<PatientDTO>> PostPatient([FromBody] PatientAddDTO request)
         {
             var person = _mapper.Map<PatientAddDTO, Person>(request);
 
@@ -55,7 +51,11 @@ namespace Consultorio.WebApi.Controllers
             {
                 return BadRequest("No se pudo agregar al paciente.");
             }
-            return CreatedAtAction("GetPatient", new { id = person.DNI }, person);
+
+            var patientDTO = _mapper.Map<PatientAddDTO, PatientDTO>(request);
+
+
+            return CreatedAtAction("GetPatient", new { id = patientDTO.DNI }, patientDTO);
         }
 
         // GET: api/Patients/Patient
@@ -79,10 +79,11 @@ namespace Consultorio.WebApi.Controllers
 
         // GET: api/Patients
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Patient>>> GetPatients()
+        public async Task<IEnumerable<PatientDTO>> GetPatients()
         {
-            var Patients = await _PatientsService.GetPatientsAsync();
-            return Patients;
+            var patients = await _PatientsService.GetPatientsAsync();
+            var resources = _mapper.Map<IEnumerable<Patient>, IEnumerable<PatientDTO>>(patients);
+            return resources;
         }
 
         // DELETE: api/Patients/5

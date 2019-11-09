@@ -36,7 +36,9 @@ namespace Consultorio.WebApi.Services
 
         public async Task<Patient[]> GetPatientsAsync()
         {
-            return await _context.Patients.ToArrayAsync();
+            return await _context.Patients
+                .AsNoTracking()
+                .ToArrayAsync();
         }
 
         public async Task<Patient> GetPatientAsync(int dni)

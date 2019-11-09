@@ -4,7 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using AutoMapper;
 using Consultorio.WebApi.Data;
+using Consultorio.WebApi.Mapping;
 using Consultorio.WebApi.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -21,12 +23,12 @@ namespace Consultorio.WebApi
 {
     public class Startup
     {
-        readonly string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
         }
 
+        readonly string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -38,6 +40,19 @@ namespace Consultorio.WebApi
 
             services.AddDbContext<ApplicationDbContext>(options =>
                         options.UseInMemoryDatabase("InMemory"));
+
+            services.AddScoped<IPatientService, PatientService>();
+
+            services.AddCors(options =>
+            {
+                options.AddPolicy(MyAllowSpecificOrigins,
+                builder =>
+                {
+                    builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+                });
+            });
+
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
             services.AddSwaggerGen( c =>
                 {
@@ -66,9 +81,12 @@ namespace Consultorio.WebApi
                     c.IncludeXmlComments(xmlPath);
                 });
 
+            services.AddAutoMapper(
+                typeof(ModelToResponseProfile),
+                typeof(RequestToModelProfile)
+                );
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
-            services.AddScoped<IPatientService, PatientService>();
+
         }
 
 
