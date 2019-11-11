@@ -6,6 +6,7 @@ using Consultorio.WebApi.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Consultorio.WebApi.Controllers
@@ -23,7 +24,7 @@ namespace Consultorio.WebApi.Controllers
             _mapper = mapper;
         }
 
-        // POST: api/Patients/AddPatient
+        // POST: api/Patients/PostPatient
         /// <summary>
         /// Crea el paciente en base a los datos enviados de una persona.
         /// </summary>
@@ -44,7 +45,7 @@ namespace Consultorio.WebApi.Controllers
         [ProducesResponseType(typeof(PatientDTO), StatusCodes.Status201Created)]
         public async Task<ActionResult<PatientDTO>> PostPatient([FromBody] PatientAddDTO request)
         {
-            var person = _mapper.Map<PatientAddDTO, Person>(request);
+            var person = _mapper.Map<PatientAddDTO, Patient>(request);
 
             var successful = await _PatientsService.AddPatientAsync(person);
             if (!successful)
@@ -52,13 +53,12 @@ namespace Consultorio.WebApi.Controllers
                 return BadRequest("No se pudo agregar al paciente.");
             }
 
-            var patientDTO = _mapper.Map<PatientAddDTO, PatientDTO>(request);
+            var patientDTO = _mapper.Map<Patient, PatientDTO>(person);
 
-
-            return CreatedAtAction("GetPatient", new { id = patientDTO.DNI }, patientDTO);
+            return await GetPatient(patientDTO.DNI);
         }
 
-        // GET: api/Patients/Patient
+        // GET: api/Patients/GetPatient
         /// <summary>
         /// Devuelve datos del paciente según el DNI enviado.
         /// </summary>
@@ -77,7 +77,10 @@ namespace Consultorio.WebApi.Controllers
             return Ok(resources);
         }
 
-        // GET: api/Patients
+        // GET: api/Patients/GetPatients
+        /// <summary>
+        /// Consulta de todos los pacientes cargados.
+        /// </summary>
         [HttpGet]
         public async Task<IEnumerable<PatientDTO>> GetPatients()
         {
@@ -86,11 +89,27 @@ namespace Consultorio.WebApi.Controllers
             return resources;
         }
 
-        // DELETE: api/Patients/5
+        // GET: api/Patients/Search
+        /// <summary>
+        /// Devuelve datos de pacientes en forma paginada.
+        /// </summary>
+        /// <returns>Datos de los pacientes.</returns>
+        [HttpGet("search")]
+        public async Task<IActionResult> Search(string name = "", string lastName = "", int? pageNumber = 1, int? pageSize = 10)
+        {
+            var patients = await _PatientsService.SearchAsync(name, lastName, pageNumber.Value, pageSize.Value);
+            if (!patients.Any())
+                return NotFound();
+            
+            var patientDTO = _mapper.Map<IEnumerable<Patient>, IEnumerable<PatientDTO>>(patients);
+            return Ok(patientDTO);
+        }
+
+        // DELETE: api/Patients/DeletePatient
         /// <summary>
         /// Elimina un paciente según el DNI enviado.
         /// </summary>
-        /// <param name="dni"></param>
+        /// <param name="dni">Ingrese el DNI del paciente a eliminar.</param>
         /// <returns>Retorna los datos del paciente eliminado.</returns>
         [HttpDelete("{dni}")]
         public async Task<ActionResult<Patient>> DeletePatient(int dni)
@@ -107,10 +126,10 @@ namespace Consultorio.WebApi.Controllers
             return patient;
         }
 
-        // // PUT: api/Patients/5
+        // // PUT: api/Patients/PutPatient
         /// <summary>
-        /// Modifica los datos de un paciente
-        ///     - 
+        /// Modifica los datos de un paciente.
+        /// 
         /// </summary>
         /// <param name="dni"></param>
         /// <param name="request"></param>

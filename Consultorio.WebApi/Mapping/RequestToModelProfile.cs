@@ -13,4 +13,3 @@ namespace Consultorio.WebApi.Mapping
         }
     }
 }
-}

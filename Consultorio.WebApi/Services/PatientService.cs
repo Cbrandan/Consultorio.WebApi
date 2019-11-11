@@ -56,9 +56,38 @@ namespace Consultorio.WebApi.Services
             return saveResult == 1;
         }
 
-        public Task<bool> ModifyPatientAsync(Patient modPatient)
+        public async Task<bool> ModifyPatientAsync(Patient modPatient)
         {
-            throw new NotImplementedException();
+            var patient = await _context.Patients
+                .Where(x => x.DNI == modPatient.DNI).FirstOrDefaultAsync();
+
+
+            if (patient == null)
+                return false;
+
+            patient.Name      = modPatient.Name;
+            patient.LastName  = modPatient.LastName;
+            patient.BirthDate = modPatient.BirthDate;
+            patient.Sex       = modPatient.Sex;
+            
+            _context.Patients.UpdateRange(patient);
+            
+            var saveResult = await _context.SaveChangesAsync();
+
+            return saveResult == 1;
         }
+        public async Task<IEnumerable<Patient>> SearchAsync(string name, string lastName, int pageNumber, int pageSize)
+        {
+            return await _context.Patients
+                .Where(x => 
+                    x.LastName.ToLower().Contains(lastName.ToLower()) &&
+                    x.Name.ToLower().Contains(name.ToLower()))
+                .OrderBy(x => x.LastName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
     }
 }

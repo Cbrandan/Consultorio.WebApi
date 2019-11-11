@@ -13,5 +13,6 @@ namespace Consultorio.WebApi.Services
         Task<Patient> GetPatientAsync(int dni);
         Task<bool> DeletePatientAsync(int dni);
         Task<bool> ModifyPatientAsync(Patient modPatient);
+        Task<IEnumerable<Patient>> SearchAsync(string name, string lastName, int pageNumber, int pageSize);
     }
 }
